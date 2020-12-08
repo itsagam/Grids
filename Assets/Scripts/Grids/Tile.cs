@@ -1,12 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 namespace Grids
 {
-	public class Tile
+	public class Tile : MonoBehaviour
 	{
+		[NonSerialized]
 		public Grid Grid;
+
+		[NonSerialized]
 		public Vector2Int GridPosition;
 
 		public Vector3 WorldPosition => Grid.GridToWorld(GridPosition);

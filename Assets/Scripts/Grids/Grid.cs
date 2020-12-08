@@ -8,8 +8,21 @@ using UnityEngine;
 
 namespace Grids
 {
-	public abstract class Grid : IEnumerable<Tile>
+	public abstract class Grid : MonoBehaviour, IEnumerable<Tile>
 	{
+		public static readonly Vector2Int[] Neighbours =
+		{
+			new Vector2Int(-1, -1),
+			new Vector2Int(-1, 0),
+			new Vector2Int(-1, +1),
+			new Vector2Int(0,  -1),
+			new Vector2Int(0,  +1),
+			new Vector2Int(+1, -1),
+			new Vector2Int(+1, 0),
+			new Vector2Int(+1, +1)
+		};
+
+		public Tile Prefab;
 		public Tile[,] Tiles;
 		public Vector2Int GridSize = new Vector2Int(10, 10);
 		public Vector2 TileSize = new Vector2(1.0f,1.0f);
@@ -17,7 +30,11 @@ namespace Grids
 		public abstract Vector2Int WorldToGrid(float x, float y, float z);
 		public abstract Vector3 GridToWorld(int x, int y);
 		public abstract int GetDistance(Vector2Int a, Vector2Int b);
-		public abstract IEnumerable<Vector2Int> GetNeighbours(int x, int y);
+
+		protected virtual void Start()
+		{
+			Generate();
+		}
 
 		protected virtual void Generate()
 		{
@@ -26,14 +43,21 @@ namespace Grids
 			for (int column=0; column < GridSize.x; column++)
 				for (int row = 0; row < GridSize.y; row++)
 				{
-					Tile tile = new Tile
-								{
-									Grid = this,
-									GridPosition = new Vector2Int(column, row)
-								};
-
-					Tiles[column, row] = tile;
+					Vector2Int gridPosition = new Vector2Int(column, row);
+					Tiles[column, row] = GenerateTile(gridPosition);
 				}
+		}
+
+		protected virtual Tile GenerateTile(Vector2Int gridPosition)
+		{
+			Tile tile = Instantiate(Prefab);
+			Transform tileTransform = tile.transform;
+			tile.name = $"{Prefab.name} {gridPosition}";
+			tile.Grid = this;
+			tile.GridPosition = gridPosition;
+			tileTransform.parent = transform;
+			tileTransform.position = tile.WorldPosition;
+			return tile;
 		}
 
 		public Tile this [int x, int y] => Tiles[x, y];
@@ -66,10 +90,103 @@ namespace Grids
 			return GetNeighbours(gridPosition.x, gridPosition.y);
 		}
 
+		public virtual IEnumerable<Vector2Int> GetNeighbours(int x, int y)
+		{
+			return Neighbours.Select(offset => new Vector2Int(x, y) + offset).Where(IsValid);
+		}
+
 		public virtual Path<Vector2Int> GetPath(Vector2Int a, Vector2Int b)
 		{
 			return AStar.FindPath(a, b, GetDistance, p => GetDistance(b, p), GetNeighbours);
 		}
+
+		public static Vector2Int GetPosition(Vector2Int start, Direction direction)
+		{
+			return start + Neighbours[(int)direction];
+		}
+
+		public static Vector2Int GetPosition(Vector2Int start, Direction direction, int numberOfTiles)
+		{
+			return start + Neighbours[(int)direction] * numberOfTiles;
+		}
+
+		public static int GetDistance4Way(Vector2Int a, Vector2Int b)
+		{
+			return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+		}
+
+		public static int GetDistance8Way(Vector2Int a, Vector2Int b)
+		{
+			return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
+		}
+
+		public IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, Vector2Int range)
+		{
+			for (int x = center.x - range.x; x <= center.x + range.x; x++)
+				for (int y = center.y - range.y; y <= center.y + range.y; y++)
+				{
+					Vector2Int position = new Vector2Int(x, y);
+					if (IsValid(position))
+						yield return position;
+				}
+		}
+
+		public IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, int radius)
+		{
+			var squareRange = GetPositionsInRange(center, new Vector2Int(radius, radius));
+			int radiusSqr = radius * radius;
+			foreach (Vector2Int position in squareRange)
+			{
+				Vector2Int difference = position - center;
+				if ((difference.x * difference.x) + (difference.y * difference.y) <= radiusSqr)
+					yield return position;
+			}
+		}
+
+		public virtual Direction GetDirection(Vector2Int displacement)
+		{
+			if (displacement.x == 0)
+			{
+				if (displacement.y > 1)
+					return Direction.North;
+
+				if (displacement.y < 1)
+					return Direction.South;
+			}
+
+			if (displacement.x > 1)
+			{
+				if (displacement.y > 1)
+					return Direction.NorthEast;
+
+				if (displacement.y == 0)
+					return Direction.East;
+
+				if (displacement.y < 1)
+					return Direction.SouthEast;
+			}
+
+			if (displacement.x < 1)
+			{
+				if (displacement.y > 1)
+					return Direction.NorthWest;
+
+				if (displacement.y == 0)
+					return Direction.West;
+
+				if (displacement.y < 1)
+					return Direction.SouthWest;
+			}
+
+			return Direction.None;
+		}
+
+		public static Vector2Int GetOffset(Direction direction)
+		{
+			return Neighbours[(int)direction];
+		}
+
+		public Vector3 WorldPosition => transform.position;
 
 		public IEnumerator<Tile> GetEnumerator()
 		{
