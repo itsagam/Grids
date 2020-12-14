@@ -1,21 +1,76 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace Grids
 {
 	public class HexGrid: Grid
 	{
-		public HexShape Shape;
-		public HexLayout Layout;
-		public HexOrientation Orientation;
+		public HexShape Shape = HexShape.Rectangle;
+		[ShowIf("Shape", HexShape.Rectangle)]
+		public HexLayout Layout = HexLayout.Even;
+		public HexOrientation Orientation = HexOrientation.Flat;
 
-		public override Vector2Int WorldToGrid(float x, float y, float z)
+		protected override void Generate()
+		{
+			Tiles = new Tile[GridSize.x, GridSize.y];
+			switch (Shape)
+			{
+				case HexShape.Hex:
+					MakeHexMap(GridSize.x - 1);
+					break;
+
+				case HexShape.Rectangle:
+					MakeRectMap(GridSize.x, GridSize.y);
+					break;
+
+				case HexShape.Triangle:
+					MakeTriMap(GridSize.x);
+					break;
+			}
+		}
+
+		public void MakeHexMap(int size)
+		{
+			for (int x=-size; x <=size; x++)
+				for (int y=-size; y <=size; y++)
+					if (Mathf.Abs(-x - y) <= size)
+						GenerateTile(new Vector2Int(x, y));
+		}
+
+		public void MakeRectMap(int width, int height)
+		{
+			for (int x=0; x <width; x++)
+				for (int y=0; y<height; y++)
+					Tiles[x, y] = GenerateTile(OffsetToAxial(new Vector2Int(x, y)));
+		}
+
+		public void MakeTriMap(int size)
+		{
+			for (int y=0; y <=size; y++)
+				for (int x=-y; x <=0; x++)
+					GenerateTile(new Vector2Int(x, y));
+		}
+
+
+		public override Vector2Int WorldToGridLocal(float x, float y, float z)
 		{
 			throw new System.NotImplementedException();
 		}
 
-		public override Vector3 GridToWorld(int x, int y)
+		public override Vector3 GridToWorldLocal(int x, int y)
 		{
-			throw new System.NotImplementedException();
+			switch (Orientation)
+			{
+				case HexOrientation.Pointed:
+					return new Vector3(x * TileSize.x + (y / 2.0f * TileSize.x),
+									   y * TileSize.y * 0.75f);
+
+				case HexOrientation.Flat:
+					return new Vector3(x * TileSize.x * 0.75f,
+									   y * TileSize.y + (x /2.0f * TileSize.y));
+			}
+
+			return Vector3.zero;
 		}
 
 		public override int GetDistance(Vector2Int a, Vector2Int b)

@@ -4,24 +4,23 @@ namespace Grids
 {
 	public class IsoGrid: Grid
 	{
+		//public const float TileRatio = 2.0f;
 		public const float TileRatio = 1.732f;
 
-		public override Vector2Int WorldToGrid(float x, float y, float z)
+		public override Vector2Int WorldToGridLocal(float x, float y, float z)
 		{
-			return new Vector2Int
-				   {
-					   x = Mathf.RoundToInt(x - y),
-					   y = Mathf.RoundToInt((x + y) / TileRatio)
-				   };
+			x = x / TileSize.x;
+			y = y / TileSize.y;
+			return new Vector2Int(Mathf.RoundToInt((TileRatio * y + x) / 2),
+								  Mathf.RoundToInt((TileRatio * y - x) / 2));
 		}
 
-		public override Vector3 GridToWorld(int x, int y)
+		public override Vector3 GridToWorldLocal(int x, int y)
 		{
-			return new Vector2
-				   {
-					   x = (TileRatio * y + x) / 2,
-					   y = (TileRatio * y - x) / 2
-				   };
+			float pointX = x * TileSize.x;
+			float pointY = y * TileSize.y;
+			return new Vector3(pointX - pointY,
+							   ((pointX + pointY) / TileRatio) - (GridSize.y / 2) * TileSize.y);
 		}
 
 		public override int GetDistance(Vector2Int a, Vector2Int b)

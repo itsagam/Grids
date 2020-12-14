@@ -1,7 +1,4 @@
-﻿// Hex
-// Iso
-
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -22,13 +19,13 @@ namespace Grids
 			new Vector2Int(+1, +1)
 		};
 
-		public Tile Prefab;
+		public GameObject Prefab;
 		public Tile[,] Tiles;
 		public Vector2Int GridSize = new Vector2Int(10, 10);
 		public Vector2 TileSize = new Vector2(1.0f,1.0f);
 
-		public abstract Vector2Int WorldToGrid(float x, float y, float z);
-		public abstract Vector3 GridToWorld(int x, int y);
+		public abstract Vector2Int WorldToGridLocal(float x, float y, float z);
+		public abstract Vector3 GridToWorldLocal(int x, int y);
 		public abstract int GetDistance(Vector2Int a, Vector2Int b);
 
 		protected virtual void Start()
@@ -50,12 +47,17 @@ namespace Grids
 
 		protected virtual Tile GenerateTile(Vector2Int gridPosition)
 		{
-			Tile tile = Instantiate(Prefab);
-			Transform tileTransform = tile.transform;
+			return GenerateTile(gridPosition, Prefab);
+		}
+
+		protected virtual Tile GenerateTile(Vector2Int gridPosition, GameObject prefab)
+		{
+			GameObject tileGO = Instantiate(prefab, transform);
+			Transform tileTransform = tileGO.transform;
+			Tile tile = tileGO.AddComponent<Tile>();
 			tile.name = $"{Prefab.name} {gridPosition}";
 			tile.Grid = this;
 			tile.GridPosition = gridPosition;
-			tileTransform.parent = transform;
 			tileTransform.position = tile.WorldPosition;
 			return tile;
 		}
@@ -83,6 +85,16 @@ namespace Grids
 		public virtual Vector3 GridToWorld(Vector2Int gridPosition)
 		{
 			return GridToWorld(gridPosition.x, gridPosition.y);
+		}
+
+		public Vector2Int WorldToGrid(float x, float y, float z)
+		{
+			return WorldToGridLocal(x - WorldPosition.x, y - WorldPosition.y, z - WorldPosition.z);
+		}
+
+		public Vector3 GridToWorld(int x, int y)
+		{
+			return GridToWorldLocal(x, y) + WorldPosition;
 		}
 
 		public virtual IEnumerable<Vector2Int> GetNeighbours(Vector2Int gridPosition)
