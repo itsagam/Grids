@@ -139,7 +139,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &124616939
 Transform:
   m_ObjectHideFlags: 0
@@ -525,7 +525,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd1fc2c9227e0d444ada79fe635835d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Grid: {fileID: 124616940}
+  Grid: {fileID: 2123666841}
   Text: {fileID: 1007940752}
 --- !u!4 &1645185051
 Transform:
@@ -604,7 +604,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &2123666841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -618,8 +618,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Prefab: {fileID: 4264627496409449830, guid: f5112671b5616e24b8e062822034ebe7, type: 3}
-  GridSize: {x: 5, y: 10}
-  TileSize: {x: 1.1, y: 1.1}
+  GridSize: {x: 5, y: 5}
+  TileSize: {x: 1, y: 0.86}
   Shape: 1
   Layout: 0
   Orientation: 0
