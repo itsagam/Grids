@@ -1,4 +1,5 @@
 using Sirenix.OdinInspector;
+using UnityEditor;
 using UnityEngine;
 
 namespace Grids
@@ -6,8 +7,10 @@ namespace Grids
 	public class HexGrid: Grid
 	{
 		public HexShape Shape = HexShape.Rectangle;
+
 		[ShowIf("Shape", HexShape.Rectangle)]
 		public HexLayout Layout = HexLayout.Even;
+
 		public HexOrientation Orientation = HexOrientation.Flat;
 
 		protected override void Generate()
@@ -16,41 +19,39 @@ namespace Grids
 			switch (Shape)
 			{
 				case HexShape.Hex:
-					MakeHexMap(GridSize.x - 1);
+					int size;
+					if (GridSize.x >= GridSize.y)
+						size = GridSize.y = GridSize.x;
+					else
+						size = GridSize.x = GridSize.y;
+					MakeHexMap(size - 1);
 					break;
 
 				case HexShape.Rectangle:
 					MakeRectMap(GridSize.x, GridSize.y);
-					break;
-
-				case HexShape.Triangle:
-					MakeTriMap(GridSize.x);
 					break;
 			}
 		}
 
 		public void MakeHexMap(int size)
 		{
-			for (int x=-size; x <=size; x++)
-				for (int y=-size; y <=size; y++)
-					if (Mathf.Abs(-x - y) <= size)
+			int size2X = size * 2;
+			int size3X = size * 3;
+			for (int x = 0; x <= size2X; x++)
+				for (int y = 0; y <= size2X; y++)
+				{
+					int sum = x + y;
+					if (sum >= size && sum <= size3X)
 						GenerateTile(new Vector2Int(x, y));
+				}
 		}
 
 		public void MakeRectMap(int width, int height)
 		{
-			for (int x=0; x <width; x++)
-				for (int y=0; y<height; y++)
+			for (int x = 0; x < width; x++)
+				for (int y = 0; y < height; y++)
 					Tiles[x, y] = GenerateTile(new Vector2Int(x, y));
 		}
-
-		public void MakeTriMap(int size)
-		{
-			for (int y=0; y <=size; y++)
-				for (int x=-y; x <=0; x++)
-					GenerateTile(new Vector2Int(x, y));
-		}
-
 
 		public override Vector2Int WorldToGridLocal(float x, float y, float z)
 		{
@@ -60,32 +61,43 @@ namespace Grids
 
 		public override Vector3 GridToWorldLocal(int x, int y)
 		{
-			switch (Shape)
+			if (Shape == HexShape.Rectangle)
 			{
-				case HexShape.Rectangle:
-
-					Vector2Int transformed = OffsetToAxial(x, y);
-					x = transformed.x;
-					y = transformed.y;
-					break;
+				Vector2Int transformed = OffsetToAxial(x, y);
+				x = transformed.x;
+				y = transformed.y;
 			}
 
 			Vector3 position = Vector3.zero;
+			int extraFactorX = 1, extraFactorY = 1;
+			if (Shape == HexShape.Hex)
+			{
+				extraFactorX = 3;
+				extraFactorY = 2;
+			}
+
 			switch (Orientation)
 			{
 				case HexOrientation.Pointed:
-					position = new Vector3(x * TileSize.x + (y / 2.0f * TileSize.x), y * TileSize.y * 0.75f);
+					position.x = (x + y / 2.0f);
+					position.y = y * 0.75f;
+
+					// Center
+					position.x -= (GridSize.x - 1) * extraFactorX / 2.0f;
+					position.y -= (GridSize.y - 1) * extraFactorY / 2.0f * 0.75f;
 					break;
 
 				case HexOrientation.Flat:
-					position = new Vector3(x * TileSize.x * 0.75f, y * TileSize.y + (x / 2.0f * TileSize.y));
+					position.x = x * 0.75f;
+					position.y = (y + x / 2.0f);
+
+					// Center
+					position.x -= (GridSize.x - 1) * extraFactorY / 2.0f * 0.75f;
+					position.y -= (GridSize.y - 1) * extraFactorX / 2.0f;
 					break;
 			}
 
-
-			//Vector2Int size = GridSize - Vector2Int.one; //OffsetToAxial(GridSize);
-			//position -= (Vector3) (size * TileSize / 2.0f);
-			return position;
+			return position * TileSize;
 		}
 
 		public override int GetDistance(Vector2Int a, Vector2Int b)
@@ -108,8 +120,8 @@ namespace Grids
 						case HexOrientation.Flat:
 							return OddQToAxial(x, y);
 					}
-
 					break;
+
 				case HexLayout.Even:
 					switch (Orientation)
 					{
@@ -119,7 +131,6 @@ namespace Grids
 						case HexOrientation.Flat:
 							return EvenQToAxial(x, y);
 					}
-
 					break;
 			}
 

@@ -16,6 +16,5 @@ namespace Grids
 	{
 		Hex,
 		Rectangle,
-		Triangle
 	}
 }
