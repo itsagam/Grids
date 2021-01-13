@@ -16,7 +16,7 @@ namespace Grids
 		public Vector3 WorldPosition => Grid.GridToWorld(GridPosition);
 		public bool IsValid => Grid.IsValid(GridPosition);
 
-		public IEnumerable<Tile> Neighbours => Grid.GetNeighbours(GridPosition).Select(p => Grid[p]);
+		public IEnumerable<Tile> Neighbours => Grid.GetNeighbours8Way(GridPosition).Select(p => Grid[p]);
 
 		public int GetDistance(int x, int y)
 		{

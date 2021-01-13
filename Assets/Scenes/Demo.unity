@@ -139,7 +139,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &124616939
 Transform:
   m_ObjectHideFlags: 0
@@ -169,6 +169,7 @@ MonoBehaviour:
   Prefab: {fileID: 6813716974746276826, guid: dcc67a54c27329b46be5ebf5307d2638, type: 3}
   GridSize: {x: 5, y: 5}
   TileSize: {x: 1, y: 1}
+  Axis: 1
 --- !u!1 &357542725
 GameObject:
   m_ObjectHideFlags: 0
@@ -311,13 +312,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 519420028}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 10, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &1007940750
 GameObject:
   m_ObjectHideFlags: 0
@@ -525,7 +526,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd1fc2c9227e0d444ada79fe635835d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Grid: {fileID: 2123666841}
+  Grid: {fileID: 124616940}
   Text: {fileID: 1007940752}
 --- !u!4 &1645185051
 Transform:
@@ -573,6 +574,7 @@ MonoBehaviour:
   Prefab: {fileID: 4264627496409449830, guid: d73ddbcb38dedb444beac610fb48a1f1, type: 3}
   GridSize: {x: 5, y: 5}
   TileSize: {x: 1, y: 1}
+  Axis: 0
   TileRatio: 2
 --- !u!4 &1882923495
 Transform:
@@ -604,7 +606,7 @@ GameObject:
   m_Icon: {fileID: 5132851093641282708, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &2123666841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -620,6 +622,7 @@ MonoBehaviour:
   Prefab: {fileID: 4264627496409449830, guid: f5112671b5616e24b8e062822034ebe7, type: 3}
   GridSize: {x: 5, y: 5}
   TileSize: {x: 1, y: 0.86}
+  Axis: 0
   Shape: 1
   Layout: 0
   Orientation: 0

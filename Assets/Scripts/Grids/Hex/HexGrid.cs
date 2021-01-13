@@ -1,11 +1,20 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
-using UnityEditor;
 using UnityEngine;
 
 namespace Grids
 {
 	public class HexGrid: Grid
 	{
+		public static readonly Vector2Int[] Neighbours = {
+														   new Vector2Int(1, 0),
+														   new Vector2Int(1, -1),
+														   new Vector2Int(0, -1),
+														   new Vector2Int(-1, 0),
+														   new Vector2Int(-1, 1),
+														   new Vector2Int(0, 1)
+														};
+
 		public HexShape Shape = HexShape.Rectangle;
 
 		[ShowIf("Shape", HexShape.Rectangle)]
@@ -53,13 +62,12 @@ namespace Grids
 					Tiles[x, y] = GenerateTile(new Vector2Int(x, y));
 		}
 
-		public override Vector2Int WorldToGridLocal(float x, float y, float z)
+		protected override Vector2Int WorldToGridLocal(float x, float y)
 		{
-			return Vector2Int.zero;
-			//throw new System.NotImplementedException();
+			throw new System.NotImplementedException();
 		}
 
-		public override Vector3 GridToWorldLocal(int x, int y)
+		protected override Vector3 GridToWorldLocal(int x, int y)
 		{
 			if (Shape == HexShape.Rectangle)
 			{
@@ -100,11 +108,98 @@ namespace Grids
 			return position * TileSize;
 		}
 
+		public static Vector2Int Round(Vector2 position)
+		{
+			float z = - position.x - position.y;
+			int rx = Mathf.RoundToInt(position.x);
+			int ry = Mathf.RoundToInt(position.y);
+			int rz = Mathf.RoundToInt(z);
+			float xDiff = Mathf.Abs(rx - position.x);
+			float yDiff = Mathf.Abs(ry - position.y);
+			float zDiff = Mathf.Abs(rz - z);
+			if (xDiff > yDiff && xDiff > zDiff)
+				rx = -ry-rz;
+			else if (yDiff > zDiff)
+				ry = -rx-rz;
+			else
+				rz = -rx-ry;
+			return new Vector2Int(rx, ry);
+		}
+
 		public override int GetDistance(Vector2Int a, Vector2Int b)
 		{
 			return (Mathf.Abs(a.x - b.x) +
 					Mathf.Abs(a.y - b.y) +
 					Mathf.Abs(a.x + a.y - b.x - b.y)) / 2;
+		}
+
+		public override IEnumerable<Vector2Int> GetNeighbours(int x, int y)
+		{
+			return GetPositions(x, y, Neighbours);
+		}
+
+		public override IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, int radius)
+		{
+			for (int x=-radius; x<=radius; x++)
+			{
+				int start = Mathf.Max(-radius, -x-radius);
+				int end = Mathf.Min(radius, -x+radius);
+				for (int y=start; y<=end; y++)
+				{
+					Vector2Int position = new Vector2Int(center.x + x, center.y + y);
+					if (IsValid(position))
+						yield return position;
+				}
+			}
+		}
+
+		public IEnumerable<Vector2Int> GetLine(Vector2Int a, Vector2Int b)
+		{
+			int distance = GetDistance(a, b);
+			for (int i=0; i<=distance; i++)
+			{
+				float ratio = (float) i / distance;
+				float inverseRatio = 1 - ratio;
+				Vector2 aVector = a;
+				Vector2 bVector = b;
+				Vector2 position = aVector * ratio + bVector * inverseRatio;
+				Vector2Int rounded = Round(position);
+				if (IsValid(rounded))
+					yield return rounded;
+			}
+		}
+
+		public IEnumerable<Vector2Int> GetSuperline(Vector2Int a, Vector2Int b)
+		{
+			float cutoff = Mathf.Tan(30 * Mathf.Deg2Rad);
+			foreach (Vector2Int position in GetLine(a, b))
+			{
+				yield return position;
+
+				foreach (Vector2Int neighbour in GetNeighbours(position))
+				{
+					int distance = GetDistance(position, neighbour);
+					if (distance <= cutoff)
+					{
+						yield return neighbour;
+						break;
+					}
+				}
+			}
+		}
+
+		public IEnumerable<Vector2Int> GetRing(Vector2Int center, int radius)
+		{
+			Vector2Int current = center + Neighbours[4] * radius;
+			for (int i=0; i < Neighbours.Length; i++)
+			{
+				for (int j=0; j < radius; j++)
+				{
+					if (IsValid(current))
+						yield return current;
+					current += Neighbours[i];
+				}
+			}
 		}
 
 		public Vector2Int OffsetToAxial(int x, int y)

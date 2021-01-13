@@ -15,6 +15,6 @@ namespace Grids
 	public enum HexShape
 	{
 		Hex,
-		Rectangle,
+		Rectangle
 	}
 }

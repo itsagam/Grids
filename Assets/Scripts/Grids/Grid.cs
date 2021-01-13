@@ -1,13 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Kit;
 using UnityEngine;
 
 namespace Grids
 {
 	public abstract class Grid : MonoBehaviour, IEnumerable<Tile>
 	{
-		public static readonly Vector2Int[] Neighbours =
+		public static readonly Vector2Int[] Neighbours8Way =
 		{
 			new Vector2Int(-1, -1),
 			new Vector2Int(-1, 0),
@@ -19,14 +20,22 @@ namespace Grids
 			new Vector2Int(+1, +1)
 		};
 
+		public static readonly Vector2Int[] Neighbours4Way =
+		{
+			new Vector2Int(-1, 0),
+			new Vector2Int(0,  -1),
+			new Vector2Int(0,  +1),
+			new Vector2Int(+1, 0)
+		};
+
 		public GameObject Prefab;
 		public Tile[,] Tiles;
 		public Vector2Int GridSize = new Vector2Int(10, 10);
 		public Vector2 TileSize = new Vector2(1.0f,1.0f);
+		public Axis Axis;
 
-		public abstract Vector2Int WorldToGridLocal(float x, float y, float z);
-		public abstract Vector3 GridToWorldLocal(int x, int y);
-		public abstract int GetDistance(Vector2Int a, Vector2Int b);
+		protected abstract Vector2Int WorldToGridLocal(float x, float y);
+		protected abstract Vector3 GridToWorldLocal(int x, int y);
 
 		protected virtual void Start()
 		{
@@ -87,14 +96,40 @@ namespace Grids
 			return GridToWorld(gridPosition.x, gridPosition.y);
 		}
 
-		public Vector2Int WorldToGrid(float x, float y, float z)
+		public virtual Vector2Int WorldToGrid(float x, float y, float z)
 		{
-			return WorldToGridLocal(x - WorldPosition.x, y - WorldPosition.y, z - WorldPosition.z);
+			switch (Axis)
+			{
+				case Axis.XZ:
+				{
+					y = z;
+					break;
+				}
+
+				case Axis.YZ:
+				{
+					x = z;
+					break;
+				}
+			}
+
+			return WorldToGridLocal(x - WorldPosition.x, y - WorldPosition.y);
 		}
 
-		public Vector3 GridToWorld(int x, int y)
+		public virtual Vector3 GridToWorld(int x, int y)
 		{
-			return GridToWorldLocal(x, y) + WorldPosition;
+			Vector3 worldPosition = GridToWorldLocal(x, y);
+			switch (Axis)
+			{
+				case Axis.XZ:
+					worldPosition = worldPosition.SwapYZ();
+					break;
+
+				case Axis.YZ:
+					worldPosition = worldPosition.SwapXZ();
+					break;
+			}
+			return worldPosition + WorldPosition;
 		}
 
 		public virtual IEnumerable<Vector2Int> GetNeighbours(Vector2Int gridPosition)
@@ -104,7 +139,27 @@ namespace Grids
 
 		public virtual IEnumerable<Vector2Int> GetNeighbours(int x, int y)
 		{
-			return Neighbours.Select(offset => new Vector2Int(x, y) + offset).Where(IsValid);
+			return GetNeighbours8Way(x, y);
+		}
+
+		public virtual IEnumerable<Vector2Int> GetNeighbours4Way(Vector2Int gridPosition)
+		{
+			return GetNeighbours4Way(gridPosition.x, gridPosition.y);
+		}
+
+		public virtual IEnumerable<Vector2Int> GetNeighbours4Way(int x, int y)
+		{
+			return GetPositions(x, y, Neighbours4Way);
+		}
+
+		public virtual IEnumerable<Vector2Int> GetNeighbours8Way(Vector2Int gridPosition)
+		{
+			return GetNeighbours8Way(gridPosition.x, gridPosition.y);
+		}
+
+		public virtual IEnumerable<Vector2Int> GetNeighbours8Way(int x, int y)
+		{
+			return GetPositions(x, y, Neighbours8Way);
 		}
 
 		public virtual Path<Vector2Int> GetPath(Vector2Int a, Vector2Int b)
@@ -112,14 +167,29 @@ namespace Grids
 			return AStar.FindPath(a, b, GetDistance, p => GetDistance(b, p), GetNeighbours);
 		}
 
+		public virtual Path<Vector2Int> GetPath8Way(Vector2Int a, Vector2Int b)
+		{
+			return AStar.FindPath(a, b, GetDistance8Way, p => GetDistance8Way(b, p), GetNeighbours8Way);
+		}
+
+		public virtual Path<Vector2Int> GetPath4Way(Vector2Int a, Vector2Int b)
+		{
+			return AStar.FindPath(a, b, GetDistance4Way, p => GetDistance4Way(b, p), GetNeighbours4Way);
+		}
+
 		public static Vector2Int GetPosition(Vector2Int start, Direction direction)
 		{
-			return start + Neighbours[(int)direction];
+			return start + Neighbours8Way[(int)direction];
 		}
 
 		public static Vector2Int GetPosition(Vector2Int start, Direction direction, int numberOfTiles)
 		{
-			return start + Neighbours[(int)direction] * numberOfTiles;
+			return start + Neighbours8Way[(int)direction] * numberOfTiles;
+		}
+
+		public virtual int GetDistance(Vector2Int a, Vector2Int b)
+		{
+			return GetDistance8Way(a, b);
 		}
 
 		public static int GetDistance4Way(Vector2Int a, Vector2Int b)
@@ -132,7 +202,7 @@ namespace Grids
 			return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
 		}
 
-		public IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, Vector2Int range)
+		public virtual IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, Vector2Int range)
 		{
 			for (int x = center.x - range.x; x <= center.x + range.x; x++)
 				for (int y = center.y - range.y; y <= center.y + range.y; y++)
@@ -143,7 +213,7 @@ namespace Grids
 				}
 		}
 
-		public IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, int radius)
+		public virtual IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, int radius)
 		{
 			var squareRange = GetPositionsInRange(center, new Vector2Int(radius, radius));
 			int radiusSqr = radius * radius;
@@ -195,10 +265,25 @@ namespace Grids
 
 		public static Vector2Int GetOffset(Direction direction)
 		{
-			return Neighbours[(int)direction];
+			return Neighbours8Way[(int)direction];
 		}
 
 		public Vector3 WorldPosition => transform.position;
+
+		protected IEnumerable<Vector2Int> GetPositions(int centerX, int centerY, IEnumerable<Vector2Int> offsets)
+		{
+			return GetPositions(new Vector2Int(centerX, centerY), offsets);
+		}
+
+		protected IEnumerable<Vector2Int> GetPositions(Vector2Int center, IEnumerable<Vector2Int> offsets)
+		{
+			return offsets.Select(offset => center + offset).Where(IsValid);
+		}
+
+		protected IEnumerable<Tile> GetTiles(IEnumerable<Vector2Int> positions)
+		{
+			return positions.Select(position => this[position]);
+		}
 
 		public IEnumerator<Tile> GetEnumerator()
 		{
