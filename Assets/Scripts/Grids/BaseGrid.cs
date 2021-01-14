@@ -30,7 +30,8 @@ namespace Grids
 		};
 
 		public GameObject Prefab;
-		public Tile[,] Tiles;
+		public readonly Dictionary<Vector2Int, Tile> Tiles = new Dictionary<Vector2Int, Tile>();
+		//public Tile[,] Tiles;
 
 #if UNITY_EDITOR
 		[ShowIf(nameof(ShouldShowGridSize))]
@@ -50,13 +51,14 @@ namespace Grids
 
 		protected virtual void Generate()
 		{
-			Tiles = new Tile[GridSize.x, GridSize.y];
+			//Tiles = new Tile[GridSize.x, GridSize.y];
 
 			for (int column=0; column < GridSize.x; column++)
 				for (int row = 0; row < GridSize.y; row++)
 				{
 					Vector2Int gridPosition = new Vector2Int(column, row);
-					Tiles[column, row] = GenerateTile(gridPosition);
+					Tiles.Add(gridPosition, GenerateTile(gridPosition));
+					//Tiles[column, row] = ;
 				}
 		}
 
@@ -77,10 +79,10 @@ namespace Grids
 			return tile;
 		}
 
-		public Tile this [int x, int y] => Tiles[x, y];
-		public Tile this [Vector2Int vector2I] => this[vector2I.x, vector2I.y];
-		public Tile this [float x, float y] => this[Mathf.RoundToInt(x), Mathf.RoundToInt(y)];
-		public Tile this [Vector2 vector2] => this[vector2.x, vector2.y];
+		public virtual Tile this [int x, int y] => Tiles[x, y];
+		public virtual Tile this [Vector2Int vector2I] => this[vector2I.x, vector2I.y];
+		public virtual Tile this [float x, float y] => this[Mathf.RoundToInt(x), Mathf.RoundToInt(y)];
+		public virtual  Tile this [Vector2 vector2] => this[vector2.x, vector2.y];
 
 		public virtual bool IsValid(int x, int y)
 		{
@@ -289,7 +291,7 @@ namespace Grids
 
 		public IEnumerable<Vector2Int> GetPositions(Vector2Int center, IEnumerable<Vector2Int> offsets)
 		{
-			return offsets.Select(offset => center + offset);
+			return offsets.Select(offset => center + offset).Where(IsValid);
 		}
 
 		public IEnumerable<Tile> GetTiles(IEnumerable<Vector2Int> positions)

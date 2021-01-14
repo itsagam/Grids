@@ -624,7 +624,8 @@ MonoBehaviour:
   TileSize: {x: 1, y: 0.86}
   Axis: 0
   Shape: 0
-  Layout: 0
+  GridRadius: 7
+  Layout: 1
   Orientation: 0
 --- !u!4 &2123666842
 Transform:

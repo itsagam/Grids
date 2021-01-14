@@ -29,14 +29,12 @@ public class Test : MonoBehaviour
 			Tile tile = rayHit.transform.GetComponent<Tile>();
 
 			HexGrid grid = (HexGrid) Grid;
-
-			Debug.Log(tile.GridPosition);
-			Debug.Log(grid.GetNeighbours(tile.GridPosition).Count());
-
 			foreach (var pos in grid.GetNeighbours(tile.GridPosition))
 			{
-				Debug.Log(pos + " " + grid.IsValid(pos));
-				//pos.gameObject.SetActive(false);
+				Vector2Int newpos = pos;
+				//Vector2Int newpos = grid.AxialToOffset(pos.x, pos.y);
+				Tile near = grid[newpos];
+				near.gameObject.SetActive(false);
 			}
 
 			//Text.text = tile.GridPosition + " " + Grid.WorldToGrid(rayHit.point);

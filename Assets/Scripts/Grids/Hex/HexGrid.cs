@@ -7,6 +7,17 @@ namespace Grids
 {
 	public class HexGrid: BaseGrid
 	{
+		// public static readonly Vector2Int[] Neighbours =
+		// {
+		// 	new Vector2Int(0, 1),
+		// 	new Vector2Int(0, -1),
+		// 	new Vector2Int(1, 0),
+		// 	new Vector2Int(-1, 0),
+		// 	new Vector2Int(1, -1),
+		// 	new Vector2Int(-1, -1),
+		// };
+
+
 		public static readonly Vector2Int[] Neighbours =
 		{
 			new Vector2Int(1, 0),
@@ -22,6 +33,7 @@ namespace Grids
 #if  UNITY_EDITOR
 		[ShowIf(nameof(ShouldShowGridRadius))]
 #endif
+		[LabelText("Radius")]
 		public int GridRadius = 5;
 
 		[ShowIf("Shape", HexShape.Rectangle)]
@@ -116,14 +128,14 @@ namespace Grids
 			return position * TileSize;
 		}
 
-		public static Vector2Int Round(Vector2 position)
+		public static Vector2Int Round(float x, float y)
 		{
-			float z = -position.x - position.y;
-			int rx = Mathf.RoundToInt(position.x);
-			int ry = Mathf.RoundToInt(position.y);
+			float z = -x - y;
+			int rx = Mathf.RoundToInt(x);
+			int ry = Mathf.RoundToInt(y);
 			int rz = Mathf.RoundToInt(z);
-			float xDiff = Mathf.Abs(rx - position.x);
-			float yDiff = Mathf.Abs(ry - position.y);
+			float xDiff = Mathf.Abs(rx - x);
+			float yDiff = Mathf.Abs(ry - y);
 			float zDiff = Mathf.Abs(rz - z);
 			if (xDiff > yDiff && xDiff > zDiff)
 				rx = -ry - rz;
@@ -172,7 +184,7 @@ namespace Grids
 				Vector2 aVector = a;
 				Vector2 bVector = b;
 				Vector2 position = aVector * ratio + bVector * inverseRatio;
-				Vector2Int rounded = Round(position);
+				Vector2Int rounded = Round(position.x, position.y);
 				if (IsValid(rounded))
 					yield return rounded;
 			}
@@ -199,16 +211,15 @@ namespace Grids
 
 		public IEnumerable<Vector2Int> GetRing(Vector2Int center, int radius)
 		{
+			radius--;
 			Vector2Int current = center + Neighbours[4] * radius;
-			for (int i = 0; i < Neighbours.Length; i++)
-			{
+			foreach (Vector2Int offset in Neighbours)
 				for (int j = 0; j < radius; j++)
 				{
 					if (IsValid(current))
 						yield return current;
-					current += Neighbours[i];
+					current += offset;
 				}
-			}
 		}
 
 		public Vector2Int OffsetToAxial(int x, int y)
@@ -263,7 +274,7 @@ namespace Grids
 			return new Vector2Int(x - ((y - (y & 1)) >> 1), y);
 		}
 
-		public Vector2Int AxialToOffset(Vector2Int offset)
+		public Vector2Int AxialToOffset(int x, int y)
 		{
 			switch (Layout)
 			{
@@ -271,10 +282,10 @@ namespace Grids
 					switch (Orientation)
 					{
 						case HexOrientation.Pointed:
-							return AxialToOddR(offset.x, offset.y);
+							return AxialToOddR(x, y);
 
 						case HexOrientation.Flat:
-							return AxialToOddQ(offset.x, offset.y);
+							return AxialToOddQ(x, y);
 					}
 
 					break;
@@ -282,10 +293,10 @@ namespace Grids
 					switch (Orientation)
 					{
 						case HexOrientation.Pointed:
-							return AxialToEvenR(offset.x, offset.y);
+							return AxialToEvenR(x, y);
 
 						case HexOrientation.Flat:
-							return AxialToEvenQ(offset.x, offset.y);
+							return AxialToEvenQ(x, y);
 					}
 
 					break;
@@ -312,6 +323,15 @@ namespace Grids
 		public static Vector2Int AxialToEvenR(int x, int y)
 		{
 			return new Vector2Int(x + (y + (y & 1)) / 2, y);
+		}
+
+		public override Tile this[float x, float y]
+		{
+			get
+			{
+				Vector2Int rounded = Round(x, y);
+				return IsValid(rounded) ? this[rounded] : null;
+			}
 		}
 
 #if UNITY_EDITOR
