@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Grids
 {
-	public class SquareGrid: Grid
+	public class SquareGrid: BaseGrid
 	{
 		protected override Vector2Int WorldToGridLocal(float x, float y)
 		{

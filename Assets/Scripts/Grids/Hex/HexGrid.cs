@@ -1,21 +1,28 @@
+using System;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace Grids
 {
-	public class HexGrid: Grid
+	public class HexGrid: BaseGrid
 	{
-		public static readonly Vector2Int[] Neighbours = {
-														   new Vector2Int(1, 0),
-														   new Vector2Int(1, -1),
-														   new Vector2Int(0, -1),
-														   new Vector2Int(-1, 0),
-														   new Vector2Int(-1, 1),
-														   new Vector2Int(0, 1)
-														};
+		public static readonly Vector2Int[] Neighbours =
+		{
+			new Vector2Int(1, 0),
+			new Vector2Int(1, -1),
+			new Vector2Int(0, -1),
+			new Vector2Int(-1, 0),
+			new Vector2Int(-1, 1),
+			new Vector2Int(0, 1)
+		};
 
 		public HexShape Shape = HexShape.Rectangle;
+
+#if  UNITY_EDITOR
+		[ShowIf(nameof(ShouldShowGridRadius))]
+#endif
+		public int GridRadius = 5;
 
 		[ShowIf("Shape", HexShape.Rectangle)]
 		public HexLayout Layout = HexLayout.Even;
@@ -24,16 +31,10 @@ namespace Grids
 
 		protected override void Generate()
 		{
-			Tiles = new Tile[GridSize.x, GridSize.y];
 			switch (Shape)
 			{
 				case HexShape.Hex:
-					int size;
-					if (GridSize.x >= GridSize.y)
-						size = GridSize.y = GridSize.x;
-					else
-						size = GridSize.x = GridSize.y;
-					MakeHexMap(size - 1);
+					MakeHexMap(GridRadius - 1);
 					break;
 
 				case HexShape.Rectangle:
@@ -46,17 +47,21 @@ namespace Grids
 		{
 			int size2X = size * 2;
 			int size3X = size * 3;
+			GridSize = new Vector2Int(size2X + 1, size2X + 1);
+			Tiles = new Tile[GridSize.x, GridSize.y];
+
 			for (int x = 0; x <= size2X; x++)
 				for (int y = 0; y <= size2X; y++)
 				{
 					int sum = x + y;
 					if (sum >= size && sum <= size3X)
-						GenerateTile(new Vector2Int(x, y));
+						Tiles[x, y] = GenerateTile(new Vector2Int(x, y));
 				}
 		}
 
 		public void MakeRectMap(int width, int height)
 		{
+			Tiles = new Tile[width, height];
 			for (int x = 0; x < width; x++)
 				for (int y = 0; y < height; y++)
 					Tiles[x, y] = GenerateTile(new Vector2Int(x, y));
@@ -64,7 +69,7 @@ namespace Grids
 
 		protected override Vector2Int WorldToGridLocal(float x, float y)
 		{
-			throw new System.NotImplementedException();
+			throw new NotImplementedException();
 		}
 
 		protected override Vector3 GridToWorldLocal(int x, int y)
@@ -78,30 +83,33 @@ namespace Grids
 
 			Vector3 position = Vector3.zero;
 			int extraFactorX = 1, extraFactorY = 1;
+
+			Vector2Int size = GridSize;
 			if (Shape == HexShape.Hex)
 			{
 				extraFactorX = 3;
 				extraFactorY = 2;
+				size = new Vector2Int(GridRadius, GridRadius);
 			}
 
 			switch (Orientation)
 			{
 				case HexOrientation.Pointed:
-					position.x = (x + y / 2.0f);
+					position.x = x + y / 2.0f;
 					position.y = y * 0.75f;
 
 					// Center
-					position.x -= (GridSize.x - 1) * extraFactorX / 2.0f;
-					position.y -= (GridSize.y - 1) * extraFactorY / 2.0f * 0.75f;
+					position.x -= (size.x - 1) * extraFactorX / 2.0f;
+					position.y -= (size.y - 1) * extraFactorY / 2.0f * 0.75f;
 					break;
 
 				case HexOrientation.Flat:
 					position.x = x * 0.75f;
-					position.y = (y + x / 2.0f);
+					position.y = y + x / 2.0f;
 
 					// Center
-					position.x -= (GridSize.x - 1) * extraFactorY / 2.0f * 0.75f;
-					position.y -= (GridSize.y - 1) * extraFactorX / 2.0f;
+					position.x -= (size.x - 1) * extraFactorY / 2.0f * 0.75f;
+					position.y -= (size.y - 1) * extraFactorX / 2.0f;
 					break;
 			}
 
@@ -110,7 +118,7 @@ namespace Grids
 
 		public static Vector2Int Round(Vector2 position)
 		{
-			float z = - position.x - position.y;
+			float z = -position.x - position.y;
 			int rx = Mathf.RoundToInt(position.x);
 			int ry = Mathf.RoundToInt(position.y);
 			int rz = Mathf.RoundToInt(z);
@@ -118,11 +126,11 @@ namespace Grids
 			float yDiff = Mathf.Abs(ry - position.y);
 			float zDiff = Mathf.Abs(rz - z);
 			if (xDiff > yDiff && xDiff > zDiff)
-				rx = -ry-rz;
+				rx = -ry - rz;
 			else if (yDiff > zDiff)
-				ry = -rx-rz;
-			else
-				rz = -rx-ry;
+				ry = -rx - rz;
+			//else
+			//	rz = -rx - ry;
 			return new Vector2Int(rx, ry);
 		}
 
@@ -140,13 +148,14 @@ namespace Grids
 
 		public override IEnumerable<Vector2Int> GetPositionsInRange(Vector2Int center, int radius)
 		{
-			for (int x=-radius; x<=radius; x++)
+			for (int x = -radius; x <= radius; x++)
 			{
-				int start = Mathf.Max(-radius, -x-radius);
-				int end = Mathf.Min(radius, -x+radius);
-				for (int y=start; y<=end; y++)
+				int start = Mathf.Max(-radius, -x - radius);
+				int end = Mathf.Min(radius, -x + radius);
+				for (int y = start; y <= end; y++)
 				{
-					Vector2Int position = new Vector2Int(center.x + x, center.y + y);
+					Vector2Int position = new Vector2Int(x, y);
+					position += center;
 					if (IsValid(position))
 						yield return position;
 				}
@@ -156,7 +165,7 @@ namespace Grids
 		public IEnumerable<Vector2Int> GetLine(Vector2Int a, Vector2Int b)
 		{
 			int distance = GetDistance(a, b);
-			for (int i=0; i<=distance; i++)
+			for (int i = 0; i <= distance; i++)
 			{
 				float ratio = (float) i / distance;
 				float inverseRatio = 1 - ratio;
@@ -191,9 +200,9 @@ namespace Grids
 		public IEnumerable<Vector2Int> GetRing(Vector2Int center, int radius)
 		{
 			Vector2Int current = center + Neighbours[4] * radius;
-			for (int i=0; i < Neighbours.Length; i++)
+			for (int i = 0; i < Neighbours.Length; i++)
 			{
-				for (int j=0; j < radius; j++)
+				for (int j = 0; j < radius; j++)
 				{
 					if (IsValid(current))
 						yield return current;
@@ -215,6 +224,7 @@ namespace Grids
 						case HexOrientation.Flat:
 							return OddQToAxial(x, y);
 					}
+
 					break;
 
 				case HexLayout.Even:
@@ -226,6 +236,7 @@ namespace Grids
 						case HexOrientation.Flat:
 							return EvenQToAxial(x, y);
 					}
+
 					break;
 			}
 
@@ -302,5 +313,10 @@ namespace Grids
 		{
 			return new Vector2Int(x + (y + (y & 1)) / 2, y);
 		}
+
+#if UNITY_EDITOR
+		public override bool ShouldShowGridSize => Shape == HexShape.Rectangle;
+		public virtual bool ShouldShowGridRadius => Shape == HexShape.Hex;
+#endif
 	}
 }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Grids
 {
-	public class IsoGrid: Grid
+	public class IsoGrid: BaseGrid
 	{
 		public float TileRatio = 2.0f;
 

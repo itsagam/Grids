@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using Kit;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace Grids
 {
-	public abstract class Grid : MonoBehaviour, IEnumerable<Tile>
+	public abstract class BaseGrid : MonoBehaviour, IEnumerable<Tile>
 	{
 		public static readonly Vector2Int[] Neighbours8Way =
 		{
@@ -30,6 +31,11 @@ namespace Grids
 
 		public GameObject Prefab;
 		public Tile[,] Tiles;
+
+#if UNITY_EDITOR
+		[ShowIf(nameof(ShouldShowGridSize))]
+#endif
+
 		public Vector2Int GridSize = new Vector2Int(10, 10);
 		public Vector2 TileSize = new Vector2(1.0f,1.0f);
 		public Axis Axis;
@@ -67,7 +73,7 @@ namespace Grids
 			tile.name = $"{Prefab.name} {gridPosition}";
 			tile.Grid = this;
 			tile.GridPosition = gridPosition;
-			tileTransform.position = tile.WorldPosition;
+			tileTransform.position = tile.CalculatedWorldPosition;
 			return tile;
 		}
 
@@ -78,7 +84,10 @@ namespace Grids
 
 		public virtual bool IsValid(int x, int y)
 		{
-			return x >= 0 && y >= 0 && x < GridSize.x && y < GridSize.y;
+			bool inRange = x >= 0 && y >= 0 && x < GridSize.x && y < GridSize.y;
+			if (inRange)
+				return this[x, y] != null;
+			return false;
 		}
 
 		public virtual bool IsValid(Vector2Int vector2I)
@@ -98,38 +107,41 @@ namespace Grids
 
 		public virtual Vector2Int WorldToGrid(float x, float y, float z)
 		{
+			Vector3 worldPosition = WorldPosition;
 			switch (Axis)
 			{
 				case Axis.XZ:
 				{
 					y = z;
+					worldPosition = worldPosition.SwapYZ();
 					break;
 				}
 
 				case Axis.YZ:
 				{
 					x = z;
+					worldPosition = worldPosition.SwapXZ();
 					break;
 				}
 			}
 
-			return WorldToGridLocal(x - WorldPosition.x, y - WorldPosition.y);
+			return WorldToGridLocal(x - worldPosition.x, y - worldPosition.y);
 		}
 
 		public virtual Vector3 GridToWorld(int x, int y)
 		{
-			Vector3 worldPosition = GridToWorldLocal(x, y);
+			Vector3 position = GridToWorldLocal(x, y);
 			switch (Axis)
 			{
 				case Axis.XZ:
-					worldPosition = worldPosition.SwapYZ();
+					position = position.SwapYZ();
 					break;
 
 				case Axis.YZ:
-					worldPosition = worldPosition.SwapXZ();
+					position = position.SwapXZ();
 					break;
 			}
-			return worldPosition + WorldPosition;
+			return position + WorldPosition;
 		}
 
 		public virtual IEnumerable<Vector2Int> GetNeighbours(Vector2Int gridPosition)
@@ -270,17 +282,17 @@ namespace Grids
 
 		public Vector3 WorldPosition => transform.position;
 
-		protected IEnumerable<Vector2Int> GetPositions(int centerX, int centerY, IEnumerable<Vector2Int> offsets)
+		public IEnumerable<Vector2Int> GetPositions(int centerX, int centerY, IEnumerable<Vector2Int> offsets)
 		{
 			return GetPositions(new Vector2Int(centerX, centerY), offsets);
 		}
 
-		protected IEnumerable<Vector2Int> GetPositions(Vector2Int center, IEnumerable<Vector2Int> offsets)
+		public IEnumerable<Vector2Int> GetPositions(Vector2Int center, IEnumerable<Vector2Int> offsets)
 		{
-			return offsets.Select(offset => center + offset).Where(IsValid);
+			return offsets.Select(offset => center + offset);
 		}
 
-		protected IEnumerable<Tile> GetTiles(IEnumerable<Vector2Int> positions)
+		public IEnumerable<Tile> GetTiles(IEnumerable<Vector2Int> positions)
 		{
 			return positions.Select(position => this[position]);
 		}
@@ -294,6 +306,10 @@ namespace Grids
 		{
 			return GetEnumerator();
 		}
+
+#if  UNITY_EDITOR
+		public virtual bool ShouldShowGridSize => true;
+#endif
 	}
 }
 

@@ -8,12 +8,13 @@ namespace Grids
 	public class Tile : MonoBehaviour
 	{
 		[NonSerialized]
-		public Grid Grid;
+		public BaseGrid Grid;
 
 		[NonSerialized]
 		public Vector2Int GridPosition;
 
-		public Vector3 WorldPosition => Grid.GridToWorld(GridPosition);
+		public Vector3 WorldPosition => transform.position;
+		public Vector3 CalculatedWorldPosition => Grid.GridToWorld(GridPosition);
 		public bool IsValid => Grid.IsValid(GridPosition);
 
 		public IEnumerable<Tile> Neighbours => Grid.GetNeighbours8Way(GridPosition).Select(p => Grid[p]);
